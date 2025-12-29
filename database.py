@@ -1,19 +1,22 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from typing import Annotated
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
 
-SQLALCHEMY_DATABASE_URL = 'sqlite:///expenses.db'
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./expenses.db"
+async_engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+AsyncSessionLocal = async_sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
+
 class Base(DeclarativeBase):
     pass
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_async_db():
+    async with AsyncSessionLocal() as session:
+        yield session
 
-def create_db_tables():
-    Base.metadata.create_all(bind=engine)
+async def async_create_db_tables():
+    async with async_engine.begin() as con:
+        await con.run_sync(Base.metadata.create_all)
+
+DB_ASYNC_SESSION = Annotated[AsyncSession, Depends(get_async_db)]
