@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import sys
 from fastapi import FastAPI, HTTPException, status
 from sqlalchemy import select
 from database import DB_ASYNC_SESSION, async_create_db_tables, async_engine
@@ -8,10 +9,13 @@ import schemas
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await async_create_db_tables()
+    is_testing = "pytest" in sys.modules
+    
+    if not is_testing:
+        await async_create_db_tables()
+        
     yield
     await async_engine.dispose()
-
 
 app = FastAPI(lifespan=lifespan)
 

@@ -24,15 +24,14 @@ async def create_db():
     yield
     await async_test_engine.dispose()
 
-@pytest.fixture
-async def client():
-    async with LifespanManager(app) as manager:
-        async with AsyncClient(transport=ASGITransport(app=manager.app), base_url='http://test') as ac:
-            yield ac
-
-
 @pytest.fixture(autouse=True)
 async def reset_db():
     async with async_test_engine.begin() as con:
         await con.execute(text("DELETE FROM expenses"))
     yield
+
+@pytest.fixture
+async def client():
+    async with LifespanManager(app) as manager:
+        async with AsyncClient(transport=ASGITransport(app=manager.app), base_url='http://test') as ac:
+            yield ac
